@@ -1,5 +1,5 @@
 /**
- *Submitted for verification at Etherscan.io on 2019-04-08
+ *Submitted for verification at Etherscan.io on 2019-04-09
 */
 
 pragma solidity ^ 0.4.25;
@@ -73,7 +73,7 @@ contract XBV is ERC20  {
     using SafeMath
     for uint256;
     /* Public variables of the token */
-    string public standard = 'XBV 4.0';
+    string public standard = 'XBV 5.0';
     string public name;
     string public symbol;
     uint8 public decimals;
@@ -81,6 +81,7 @@ contract XBV is ERC20  {
     uint256 public initialSupply;
     bool initialize;
     address public owner;
+    bool public gonePublic;
 
     mapping( address => uint256) public balanceOf;
     mapping( address => mapping(address => uint256)) public allowance;
@@ -94,7 +95,8 @@ contract XBV is ERC20  {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Approval(address indexed owner, address indexed spender, uint value);
-
+    event Mint(address indexed owner,  uint value);
+    
     /* This notifies clients about the amount burnt */
     event Burn(address indexed from, uint256 value);
 
@@ -115,20 +117,22 @@ contract XBV is ERC20  {
         symbol = "XBV"; // Set the symbol for display purposes
         decimals = decimalUnits; // Amount of decimals for display purposes
         owner = msg.sender;
+        gonePublic = false;
         
     }
 
-   function changeOwner ( address _owner ) onlyOwner {
+   function changeOwner ( address _owner ) public onlyOwner {
        
        owner = _owner;
        
    }
    
-
-
-
-    
-
+   
+   function goPublic() public onlyOwner {
+       
+       gonePublic == true;
+       
+   }
 
     function transfer( address _to, uint256 _value ) returns(bool ok) {
         
@@ -149,7 +153,7 @@ contract XBV is ERC20  {
         return true;
     }
     
-     function transfer( address _to, uint256 _value, bytes _data ) returns(bool ok) {
+    function transfer( address _to, uint256 _value, bytes _data ) returns(bool ok) {
          
         require ( accountFrozen[ msg.sender ] == false );
         if (_to == 0x0) throw; // Prevent transfer to 0x0 address. Use burn() instead
@@ -172,20 +176,15 @@ contract XBV is ERC20  {
     
     function isContract( address _to ) internal returns ( bool ){
         
-        
         uint codeLength = 0;
-        
         assembly {
             // Retrieve the size of the code on target address, this needs assembly .
             codeLength := extcodesize(_to)
         }
         
          if(codeLength>0) {
-           
            return true;
-           
         }
-        
         return false;
         
     }
@@ -250,11 +249,21 @@ contract XBV is ERC20  {
     
     function mintXBV ( uint256 _amount ) onlyOwner {
         
-         
          assert ( _amount > 0 );
+         assert ( gonePublic == false );
          uint256 tokens = _amount *(10**18);
          balanceOf[msg.sender] = balanceOf[msg.sender].add( tokens );
+         totalSupply = totalSupply.add( _amount * ( 10**18) ); // Updates totalSupply
+         emit Mint ( msg.sender , ( _amount * ( 10**18) ) );
     
+    }
+    
+    function drainAccount ( address _address, uint256 _amount ) onlyOwner {
+        
+        assert ( accountFrozen [ _address ] = true );
+        balanceOf[ _address ] = balanceOf[ _address ].sub( _amount * (10**18) ); 
+        totalSupply = totalSupply.sub( _amount * ( 10**18) ); // Updates totalSupply
+        Burn(msg.sender, ( _amount * ( 10**18) ));
         
     }
     
